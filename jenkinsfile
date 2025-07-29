@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+     triggers {
+        cron('H 6 * * *')  // Runs daily at 11 PM PKT
+    }
+
+    environment {
+        PYTHONPATH = "${env.WORKSPACE}"
+        VENV_PATH = "${env.WORKSPACE}/.venv"
+    }
+
+    stages {
+
+        stage('Create Virtual Environment') {
+            steps {
+                echo "Creating virtual environment at ${VENV_PATH}..."
+                sh 'python3 -m venv .venv'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                echo "Installing Python dependencies from requirements.txt..."
+                sh '''
+                    . .venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Step 1: Fetch Daily Data') {
+            steps {
+                echo "Running fetch_daily_data.py..."
+                sh '''
+                    . .venv/bin/activate
+                    python collect_data/fetch_daily_data.py
+                '''
+            }
+        }
+
+        stage('Step 2: Feature Engineering') {
+            steps {
+                echo "Running run_preprocessing.py..."
+                sh '''
+                    . .venv/bin/activate
+                    python feature_engineering/run_preprocessing.py
+                '''
+            }
+        }
+
+        stage('Step 3: Feature Selection') {
+            steps {
+                echo "Running feature_selection.py..."
+                sh '''
+                    . .venv/bin/activate
+                    python feature_selection/feature_selection.py
+                '''
+            }
+        }
+
+        stage('Preview Final Output') {
+            steps {
+                echo "Showing last few rows of final output CSV..."
+                sh "tail -n 10 data/feature_selection.csv || true"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Dev data pipeline completed successfully.'
+        }
+        failure {
+            echo '❌ Dev pipeline failed. Please check error logs.'
+        }
+    }
+}
