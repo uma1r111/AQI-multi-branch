@@ -1,22 +1,4 @@
 import json
-import sys
-import os
-import mlflow
-from mlflow.tracking import MlflowClient
-from mlflow.exceptions import MlflowException
-
-# === MLflow Setup ===
-mlflow.set_tracking_uri("http://172.174.154.85:8000")
-client = MlflowClient()
-
-# === Constants ===
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-NEW_METRICS_PATH = os.path.join(PROJECT_ROOT, "metrics.json")
-CHALLENGER_METRICS_PATH = os.path.join(PROJECT_ROOT, "challenger_metrics.json")
-MODEL_NAME = "sarimax-model"
-NEW_ALIAS = "challenger"
-PREVIOUS_ALIAS = "pre-challenger"
-import json
 import os
 import sys
 import argparse
