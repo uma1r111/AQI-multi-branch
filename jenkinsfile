@@ -1,13 +1,14 @@
 pipeline {
     agent any
 
-     triggers {
+    triggers {
         cron('H 6 * * *')  // Runs daily at 11 PM PKT
     }
 
     environment {
         PYTHONPATH = "${env.WORKSPACE}"
         VENV_PATH = "${env.WORKSPACE}/.venv"
+        MODEL_SCRIPT = "xgb.py"  // ✅ Change this if you want to run a different model (e.g., rf.py, lr.py)
     }
 
     stages {
@@ -66,11 +67,35 @@ pipeline {
                 sh "tail -n 10 data/feature_selection.csv || true"
             }
         }
-    }
+
+        stage('Step 4: Model Training') {
+            steps {
+                echo "Running model_training/${MODEL_SCRIPT}..."
+                sh '''
+                    . .venv/bin/activate
+                    python model_training/${MODEL_SCRIPT}
+                '''
+            }
+        }
+
+        stage('Step 5: Compare Models') {
+            steps {
+                echo "Running model comparison script..."
+                sh '''
+                    . .venv/bin/activate
+                    python compare_models.py \
+                      --model_name "${MODEL_NAME}" \
+                      --metrics_path "${METRICS_PATH}" \
+                      --challenger_metrics_path "${CHALLENGER_METRICS_PATH}" \
+                      --new_alias "${NEW_ALIAS}" \
+                      --prev_alias "${PREV_ALIAS}"
+                '''
+            }
+        }
 
     post {
         success {
-            echo '✅ Dev data pipeline completed successfully.'
+            echo '✅ Dev pipeline completed successfully.'
         }
         failure {
             echo '❌ Dev pipeline failed. Please check error logs.'
