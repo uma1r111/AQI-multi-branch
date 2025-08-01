@@ -9,10 +9,10 @@ from mlflow.exceptions import MlflowException
 # 🟠 Constants
 # -------------------------------
 MLFLOW_TRACKING_URI = "http://172.174.154.85:8000"
-EXPERIMENT_NAME = "dev_model_training"
-METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\model training\metrics.json"
+EXPERIMENT_NAME = "Dev Model Training"
+METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\metrics.json"
 CHALLENGER_METRICS_PATH = "challenger_metrics.json"
-MODEL_NAME = "sarimax-dev-model"
+MODEL_NAME = "sarimax-model"
 ALIAS_CHALLENGER = "challenger"
 ALIAS_PRE_CHALLENGER = "pre-challenger"
 
