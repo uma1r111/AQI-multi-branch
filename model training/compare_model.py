@@ -12,7 +12,7 @@ MLFLOW_TRACKING_URI = "http://172.174.154.85:8000"
 EXPERIMENT_NAME = "Dev Model Training"
 METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\metrics.json"
 CHALLENGER_METRICS_PATH = "challenger_metrics.json"
-MODEL_NAME = "sarimax-model"
+MODEL_NAME = "aqi-model"
 ALIAS_CHALLENGER = "challenger"
 ALIAS_PRE_CHALLENGER = "pre-challenger"
 
@@ -30,8 +30,11 @@ if experiment is None:
     print(f"❌ Experiment '{EXPERIMENT_NAME}' not found.")
     sys.exit(1)
 
-# Get latest active run (sorted by start time)
-runs = client.search_runs(experiment_ids=[experiment.experiment_id], order_by=["start_time DESC"], max_results=1)
+runs = client.search_runs(
+    experiment_ids=[experiment.experiment_id],
+    order_by=["start_time DESC"],
+    max_results=1,
+)
 
 if not runs:
     print(f"❌ No runs found in experiment '{EXPERIMENT_NAME}'")
@@ -63,8 +66,20 @@ if not new_model_versions:
 
 new_model_version = new_model_versions[0].version
 
-# Always assign 'challenger' alias to new version
+# -------------------------------
+# 🔄 Assign 'challenger' alias to new model version
+# -------------------------------
+# Optional cleanup of old challenger alias for cleanliness
+try:
+    old_challenger_version = client.get_model_version_by_alias(MODEL_NAME, ALIAS_CHALLENGER)
+    if old_challenger_version.version != new_model_version:
+        client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER)
+except MlflowException:
+    # No challenger alias exists yet
+    pass
+
 client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER, version=new_model_version)
+print(f"✅ Assigned alias '{ALIAS_CHALLENGER}' to model version {new_model_version}")
 
 # -------------------------------
 # 🔍 Compare against pre-challenger
@@ -72,23 +87,29 @@ client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER, version=ne
 try:
     pre_challenger_version = client.get_model_version_by_alias(MODEL_NAME, ALIAS_PRE_CHALLENGER)
     prev_run_id = pre_challenger_version.run_id
+
+    # Prevent self-comparison
+    if run_id == prev_run_id:
+        print("⚠️ Challenger and pre-challenger are the same model. Skipping comparison.")
+        sys.exit(0)
+
     prev_metrics = client.get_run(prev_run_id).data.metrics
     prev_rmse = prev_metrics.get("rmse", float("inf"))
 
     print(f"📊 New RMSE: {new_rmse:.4f} | Existing pre-challenger RMSE: {prev_rmse:.4f}")
 
     if new_rmse < prev_rmse:
-        # Reassign pre-challenger alias
+        # Reassign pre-challenger alias to new model
         client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER)
         client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER, version=new_model_version)
-        print(f"✅ New model promoted as 'pre-challenger'")
+        print(f"✅ New model promoted as '{ALIAS_PRE_CHALLENGER}'")
     else:
-        print(f"❌ New model did not outperform current pre-challenger")
+        print(f"❌ New model did not outperform current '{ALIAS_PRE_CHALLENGER}'")
 
 except MlflowException:
-    # No previous pre-challenger exists — assign
+    # No previous pre-challenger exists — assign to new model
     client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER, version=new_model_version)
-    print(f"🆕 No previous pre-challenger found. Assigned alias to new model.")
+    print(f"🆕 No previous '{ALIAS_PRE_CHALLENGER}' found. Assigned alias to new model.")
 
 # -------------------------------
 # 💾 Save challenger metrics

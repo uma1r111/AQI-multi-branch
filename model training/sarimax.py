@@ -83,6 +83,8 @@ with mlflow.start_run(run_name="SARIMAX-challenger") as run:
             "rmse": rmse, "mae": mae, "mape": mape, "aic": aic
         })
 
+        mlflow.set_tag("model_type", "sarimax")
+
         # === Save model ===
         joblib.dump(fitted_model, "sarimax_model.pkl")
         mlflow.pyfunc.log_model(
@@ -96,16 +98,16 @@ with mlflow.start_run(run_name="SARIMAX-challenger") as run:
         print(f"Model URI: {model_uri}")
         registered_model = mlflow.register_model(
             model_uri=model_uri,
-            name="sarimax-model"
+            name="aqi-model"
         )
         # Set alias
         client = MlflowClient()
         client.set_registered_model_alias(
-            name="sarimax-model",
-            alias="pre-challenger",
+            name="aqi-model",
+            alias="challenger",
             version=registered_model.version
         )
-        print(f"✅ Model registered as version {registered_model.version} with alias 'pre-challenger'")
+        print(f"✅ Model registered as version {registered_model.version} with alias 'challenger'")
         # Save metrics.json
         with open("metrics.json", "w") as f:
             json.dump({
