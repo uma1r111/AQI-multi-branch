@@ -32,10 +32,24 @@ train_exog = train_df.drop(columns=["datetime", target_col]).values
 test_exog = test_df.drop(columns=["datetime", target_col]).values
 
 best_params = {
-    'p': 2, 'd': 0, 'q': 0,
-    'P': 2, 'D': 0, 'Q': 2,
+    'p': 2,
+    'd': 0, 
+    'q': 0,
+    'P': 2, 
+    'D': 0, 
+    'Q': 2,
     'seasonal_period': 12
 }
+
+# best_params = {
+#     "p": 0,
+#     "d": 0,
+#     "q": 0,
+#     "P": 2,
+#     "D": 0,
+#     "Q": 2,
+#     "seasonal_period": 6
+# }
 
 # === Custom MLflow PyFunc Wrapper ===
 class SARIMAXWrapper(mlflow.pyfunc.PythonModel):
