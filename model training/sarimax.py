@@ -12,7 +12,7 @@ import os
 
 # MLflow setup
 mlflow.set_tracking_uri("http://172.174.154.85:8000")
-mlflow.set_experiment("dev_model_training")
+mlflow.set_experiment("Dev Model Training")
 
 # === Load Data ===
 df = pd.read_csv("C:/Users/shaikh.mumar/AQI-multi-branch/data/feature_selection.csv")
