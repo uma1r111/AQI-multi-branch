@@ -58,7 +58,7 @@ class SARIMAXWrapper(mlflow.pyfunc.PythonModel):
         self.model = joblib.load(context.artifacts["sarimax_model"])
     def predict(self, context, model_input):
         return self.model.forecast(steps=len(model_input), exog=model_input)
-with mlflow.start_run(run_name="SARIMAX-challenger") as run:
+with mlflow.start_run(run_name="Sarimax") as run:
     try:
         print("Training SARIMAX...")
         model = SARIMAX(
@@ -86,9 +86,9 @@ with mlflow.start_run(run_name="SARIMAX-challenger") as run:
         mlflow.set_tag("model_type", "sarimax")
 
         # === Save model ===
-        joblib.dump(fitted_model, "sarimax_model.pkl")
+        #joblib.dump(fitted_model, "sarimax_model.pkl")
         mlflow.pyfunc.log_model(
-            artifact_path="sarimax_model_pyfunc",
+            artifact_path="sarimax_model",
             python_model=SARIMAXWrapper(),
             artifacts={"sarimax_model": "sarimax_model.pkl"}
         )
@@ -107,6 +107,14 @@ with mlflow.start_run(run_name="SARIMAX-challenger") as run:
             alias="challenger",
             version=registered_model.version
         )
+
+        client.set_model_version_tag(
+        name="aqi-model",
+        version=registered_model.version,
+        key="model_type",
+        value="sarimax"  
+        )
+
         print(f"✅ Model registered as version {registered_model.version} with alias 'challenger'")
         # Save metrics.json
         with open("metrics.json", "w") as f:

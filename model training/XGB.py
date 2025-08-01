@@ -93,9 +93,20 @@ with mlflow.start_run(run_name="XGBoost") as run:
         model_uri = f"runs:/{run.info.run_id}/xgb_model"
         result = mlflow.register_model(model_uri=model_uri, name="aqi-model")
 
-        # Set alias
+        # === Set alias ===
         client = MlflowClient()
-        client.set_registered_model_alias("aqi-model", "challenger", result.version)
+        client.set_registered_model_alias(
+            name="aqi-model",
+            alias="challenger",
+            version=result.version
+        )
+
+        client.set_model_version_tag(
+            name="aqi-model",
+            version=result.version,
+            key="model_type",
+            value="xgboost"
+        )
 
         print(f"✅ Registered XGBoost model as version {result.version} with alias 'challenger'")
         print(f"🏃 View run XGBoost at: {mlflow.get_tracking_uri()}/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}")
