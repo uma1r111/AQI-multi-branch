@@ -41,23 +41,15 @@ best_params = {
     'seasonal_period': 12
 }
 
-# best_params = {
-#     "p": 0,
-#     "d": 0,
-#     "q": 0,
-#     "P": 2,
-#     "D": 0,
-#     "Q": 2,
-#     "seasonal_period": 6
-# }
-
 # === Custom MLflow PyFunc Wrapper ===
 class SARIMAXWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
         import joblib
+        # Key matches artifact dict below
         self.model = joblib.load(context.artifacts["sarimax_model"])
     def predict(self, context, model_input):
         return self.model.forecast(steps=len(model_input), exog=model_input)
+
 with mlflow.start_run(run_name="Sarimax") as run:
     try:
         print("Training SARIMAX...")
@@ -85,10 +77,12 @@ with mlflow.start_run(run_name="Sarimax") as run:
 
         mlflow.set_tag("model_type", "sarimax")
 
-        # === Save model ===
-        #joblib.dump(fitted_model, "sarimax_model.pkl")
+        # === Save model locally ===
+        joblib.dump(fitted_model, "sarimax_model.pkl")
+
+        # === Log model to MLflow ===
         mlflow.pyfunc.log_model(
-            artifact_path="sarimax_model",
+            artifact_path="sarimax_model_pyfunc",
             python_model=SARIMAXWrapper(),
             artifacts={"sarimax_model": "sarimax_model.pkl"}
         )
@@ -100,23 +94,26 @@ with mlflow.start_run(run_name="Sarimax") as run:
             model_uri=model_uri,
             name="aqi-model"
         )
-        # Set alias
+
+        # === Set alias ===
         client = MlflowClient()
         client.set_registered_model_alias(
             name="aqi-model",
-            alias="challenger",
+            alias="pre-challenger",
             version=registered_model.version
         )
 
+        # === Set model version tag ===
         client.set_model_version_tag(
-        name="aqi-model",
-        version=registered_model.version,
-        key="model_type",
-        value="sarimax"  
+            name="aqi-model",
+            version=registered_model.version,
+            key="model_type",
+            value="sarimax"  
         )
 
-        print(f"✅ Model registered as version {registered_model.version} with alias 'challenger'")
-        # Save metrics.json
+        print(f"✅ Model registered as version {registered_model.version} with alias 'pre-challenger'")
+
+        # Save metrics.json locally
         with open("metrics.json", "w") as f:
             json.dump({
                 "rmse": rmse, "mae": mae, "mape": mape, "aic": aic

@@ -13,8 +13,8 @@ EXPERIMENT_NAME = "Dev Model Training"
 METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\metrics.json"
 CHALLENGER_METRICS_PATH = "challenger_metrics.json"
 MODEL_NAME = "aqi-model"
-ALIAS_CHALLENGER = "challenger"
-ALIAS_PRE_CHALLENGER = "pre-challenger"
+ALIAS_CHALLENGER = "pre-challenger"
+ALIAS_PRE_CHALLENGER = "challenger"
 
 # -------------------------------
 # 🟢 MLflow Setup
@@ -67,22 +67,22 @@ if not new_model_versions:
 new_model_version = new_model_versions[0].version
 
 # -------------------------------
-# 🔄 Assign 'challenger' alias to new model version
+# 🔄 Assign 'pre-challenger' alias to new model version
 # -------------------------------
-# Optional cleanup of old challenger alias for cleanliness
+# Optional cleanup of old pre-challenger alias for cleanliness
 try:
     old_challenger_version = client.get_model_version_by_alias(MODEL_NAME, ALIAS_CHALLENGER)
     if old_challenger_version.version != new_model_version:
         client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER)
 except MlflowException:
-    # No challenger alias exists yet
+    # No pre-challenger alias exists yet
     pass
 
 client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER, version=new_model_version)
 print(f"✅ Assigned alias '{ALIAS_CHALLENGER}' to model version {new_model_version}")
 
 # -------------------------------
-# 🔍 Compare against pre-challenger
+# 🔍 Compare against challenger
 # -------------------------------
 try:
     pre_challenger_version = client.get_model_version_by_alias(MODEL_NAME, ALIAS_PRE_CHALLENGER)
@@ -99,7 +99,7 @@ try:
     print(f"📊 New RMSE: {new_rmse:.4f} | Existing pre-challenger RMSE: {prev_rmse:.4f}")
 
     if new_rmse < prev_rmse:
-        # Reassign pre-challenger alias to new model
+        # Reassign challenger alias to new model
         client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER)
         client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER, version=new_model_version)
         print(f"✅ New model promoted as '{ALIAS_PRE_CHALLENGER}'")
@@ -107,7 +107,7 @@ try:
         print(f"❌ New model did not outperform current '{ALIAS_PRE_CHALLENGER}'")
 
 except MlflowException:
-    # No previous pre-challenger exists — assign to new model
+    # No previous challenger exists — assign to new model
     client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER, version=new_model_version)
     print(f"🆕 No previous '{ALIAS_PRE_CHALLENGER}' found. Assigned alias to new model.")
 
