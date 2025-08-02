@@ -13,8 +13,8 @@ EXPERIMENT_NAME = "Dev Model Training"
 METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\metrics.json"
 CHALLENGER_METRICS_PATH = "challenger_metrics.json"
 MODEL_NAME = "aqi-model"
-ALIAS_CHALLENGER = "pre-challenger"
-ALIAS_PRE_CHALLENGER = "challenger"
+ALIAS_CHALLENGER = "challenger"
+ALIAS_PRE_CHALLENGER = "pre-challenger"
 
 # -------------------------------
 # 🟢 MLflow Setup

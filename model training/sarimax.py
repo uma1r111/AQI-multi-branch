@@ -99,7 +99,7 @@ with mlflow.start_run(run_name="Sarimax") as run:
         client = MlflowClient()
         client.set_registered_model_alias(
             name="aqi-model",
-            alias="pre-challenger",
+            alias="challenger",
             version=registered_model.version
         )
 
@@ -111,7 +111,7 @@ with mlflow.start_run(run_name="Sarimax") as run:
             value="sarimax"  
         )
 
-        print(f"✅ Model registered as version {registered_model.version} with alias 'pre-challenger'")
+        print(f"✅ Model registered as version {registered_model.version} with alias 'challenger'")
 
         # Save metrics.json locally
         with open("metrics.json", "w") as f:
