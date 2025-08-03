@@ -34,7 +34,7 @@ pipeline {
                 echo "Running fetch_daily_data.py..."
                 sh '''
                     . .venv/bin/activate
-                    python collect_data/fetch_daily_data.py
+                    python collect data/fetch_daily_data.py
                 '''
             }
         }
@@ -44,7 +44,7 @@ pipeline {
                 echo "Running run_preprocessing.py..."
                 sh '''
                     . .venv/bin/activate
-                    python feature_engineering/run_preprocessing.py
+                    python feature engineering/run_preprocessing.py
                 '''
             }
         }
@@ -54,7 +54,7 @@ pipeline {
                 echo "Running feature_selection.py..."
                 sh '''
                     . .venv/bin/activate
-                    python feature_selection/feature_selection.py
+                    python feature selection/feature_selection.py
                 '''
             }
         }
@@ -76,13 +76,13 @@ pipeline {
                         echo "Running SARIMAX model..."
                         sh '''
                             . .venv/bin/activate
-                            python model_training/sarimax.py
+                            python model training/sarimax.py
                         '''
                     } else if (config.run_XGB == true) {
                         echo "Running XGBoost model..."
                         sh '''
                             . .venv/bin/activate
-                            python model_training/XGB.py
+                            python model training/XGB.py
                         '''
                     } else {
                         error("❌ No valid model selected in model_config.json")
@@ -96,7 +96,7 @@ pipeline {
                 echo "Running compare_model.py..."
                 sh '''
                     . .venv/bin/activate
-                    python model_training/compare_model.py
+                    python model training/compare_model.py
                 '''
             }
         }
