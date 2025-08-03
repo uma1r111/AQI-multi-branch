@@ -1,109 +1,137 @@
 import json
 import os
 import sys
-import argparse
 import mlflow
 from mlflow.tracking import MlflowClient
 from mlflow.exceptions import MlflowException
 
 # -------------------------------
-# 🔧 Argument Parsing
+# 🟠 Constants
 # -------------------------------
-parser = argparse.ArgumentParser(description="Compare MLflow models by metrics and aliases.")
-parser.add_argument("--model_name", required=True, help="Registered MLflow model name")
-parser.add_argument("--new_alias", default="challenger-pre-prod", help="Alias for new model (default: challenger-pre-prod)")
-parser.add_argument("--prev_alias", default="post-challenger", help="Alias for previous model (default: post-challenger)")
-parser.add_argument("--metrics_path", default="metrics.json", help="Path to JSON file with new model's metrics")
-parser.add_argument("--challenger_metrics_path", default="challenger_metrics.json", help="Path to JSON file with previous model's metrics")
-args = parser.parse_args()
+MLFLOW_TRACKING_URI = "http://172.174.154.85:8000"
+EXPERIMENT_NAME = "Pre-Prod Model Training"
+METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\metrics.json"
+CHALLENGER_METRICS_PATH = "challenger-posttest_metrics.json"
+MODEL_NAME = "aqi-model"
+ALIAS_CHALLENGER = "challenger-pretest"
+ALIAS_PRE_CHALLENGER = "challenger-posttest"
 
 # -------------------------------
-# 🔗 MLflow Setup
+# 🟢 MLflow Setup
 # -------------------------------
-mlflow.set_tracking_uri("http://172.174.154.85:8000")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 client = MlflowClient()
 
 # -------------------------------
-# Constants (from CLI)
+# 🧠 Get latest successful run from pre-prod experiment
 # -------------------------------
-NEW_METRICS_PATH = args.metrics_path
-CHALLENGER_METRICS_PATH = args.challenger_metrics_path
-MODEL_NAME = args.model_name
-NEW_ALIAS = args.new_alias
-PREVIOUS_ALIAS = args.prev_alias
-
-# === Sanity Check: List All Registered Models ===
-try:
-    registered_models = client.search_registered_models()
-    print(f"🔍 Found {len(registered_models)} registered models:")
-    for model in registered_models:
-        print(f"  - {model.name}")
-        versions = client.search_model_versions(f"name='{model.name}'")
-        for version in versions:
-            aliases = getattr(version, 'aliases', [])
-            print(f"    Version {version.version}: aliases = {aliases}")
-except Exception as e:
-    print(f"❌ Failed to connect to MLflow: {e}")
+experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
+if experiment is None:
+    print(f"❌ Experiment '{EXPERIMENT_NAME}' not found.")
     sys.exit(1)
 
-# === Load New Model Metrics ===
-try:
-    with open(NEW_METRICS_PATH, "r") as f:
-        new_metrics = json.load(f)
-    new_rmse = new_metrics.get("rmse")
-except Exception as e:
-    print(f"❌ Failed to load new metrics: {e}")
+runs = client.search_runs(
+    experiment_ids=[experiment.experiment_id],
+    order_by=["start_time DESC"],
+    max_results=1,
+)
+
+if not runs:
+    print(f"❌ No runs found in experiment '{EXPERIMENT_NAME}'")
     sys.exit(1)
 
-# === First-Time Promotion: Promote New Model as Post-Challenger ===
-if not os.path.exists(CHALLENGER_METRICS_PATH):
-    print("📢 No previous post-challenger found. Promoting current model.")
-    try:
-        alias_info = client.get_model_version_by_alias(MODEL_NAME, NEW_ALIAS)
-        version = alias_info.version
-        client.set_registered_model_alias(MODEL_NAME, PREVIOUS_ALIAS, version=version)
+latest_run = runs[0]
+run_id = latest_run.info.run_id
+print(f"🆕 Using latest run_id: {run_id}")
 
-        with open(CHALLENGER_METRICS_PATH, "w") as f:
-            json.dump(new_metrics, f, indent=4)
+# -------------------------------
+# 📊 Load new model's metrics
+# -------------------------------
+if not os.path.exists(METRICS_PATH):
+    print(f"❌ Could not find {METRICS_PATH}. Did training run save it?")
+    sys.exit(1)
 
-        print(f"✅ Version {version} promoted to alias '{PREVIOUS_ALIAS}'")
+with open(METRICS_PATH, "r") as f:
+    new_metrics = json.load(f)
+
+new_rmse = new_metrics.get("rmse")
+if new_rmse is None:
+    print("❌ RMSE not found in new model metrics.")
+    sys.exit(1)
+
+# -------------------------------
+# 🔍 Get model version from run_id
+# -------------------------------
+new_model_versions = client.search_model_versions(f"run_id='{run_id}' and name='{MODEL_NAME}'")
+if not new_model_versions:
+    print(f"❌ No model version found for run_id: {run_id}")
+    sys.exit(1)
+
+new_model_version = new_model_versions[0].version
+
+# -------------------------------
+# 🔄 Assign 'challenger-pretest' alias to new model version
+# -------------------------------
+try:
+    old_challenger_version = client.get_model_version_by_alias(MODEL_NAME, ALIAS_CHALLENGER)
+    if old_challenger_version.version != new_model_version:
+        client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER)
+except MlflowException:
+    pass  # No previous alias
+
+client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER, version=new_model_version)
+print(f"✅ Assigned alias '{ALIAS_CHALLENGER}' to model version {new_model_version}")
+
+# -------------------------------
+# 🔍 Compare against posttest model (if exists)
+# -------------------------------
+promoted = False
+
+try:
+    pre_challenger_version = client.get_model_version_by_alias(MODEL_NAME, ALIAS_PRE_CHALLENGER)
+    prev_run_id = pre_challenger_version.run_id
+
+    # Prevent self-comparison
+    if run_id == prev_run_id:
+        print("⚠️ Challenger and pre-challenger are the same model. Skipping comparison.")
         sys.exit(0)
 
-    except MlflowException as e:
-        print(f"❌ Could not find alias '{NEW_ALIAS}' or model '{MODEL_NAME}'.")
-        print(f"Details: {e}")
-        sys.exit(1)
+    prev_metrics = client.get_run(prev_run_id).data.metrics
+    prev_rmse = prev_metrics.get("rmse", float("inf"))
 
-# === Load Previous Post-Challenger Metrics ===
-try:
-    with open(CHALLENGER_METRICS_PATH, "r") as f:
-        challenger_metrics = json.load(f)
-    challenger_rmse = challenger_metrics.get("rmse")
-except Exception as e:
-    print(f"❌ Failed to load challenger metrics: {e}")
-    sys.exit(1)
+    print(f"📊 New RMSE: {new_rmse:.4f} | Existing posttest RMSE: {prev_rmse:.4f}")
 
-# === Compare Metrics ===
-print(f"📊 New RMSE: {new_rmse:.4f} | Previous Post-Challenger RMSE: {challenger_rmse:.4f}")
+    if new_rmse < prev_rmse:
+        client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER)
+        client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER, version=new_model_version)
+        print(f"✅ New model promoted as '{ALIAS_PRE_CHALLENGER}'")
+        promoted = True
+    else:
+        print(f"❌ New model did not outperform current '{ALIAS_PRE_CHALLENGER}'")
 
-if new_rmse < challenger_rmse:
-    print("✅ New model outperforms the post-challenger. Promoting...")
+except MlflowException:
+    # No posttest model exists — use threshold strategy
+    if new_rmse < 1.0:
+        client.set_registered_model_alias(MODEL_NAME, alias=ALIAS_PRE_CHALLENGER, version=new_model_version)
+        print(f"🆕 No previous '{ALIAS_PRE_CHALLENGER}' found. Promoted model based on RMSE < 1.0")
+        promoted = True
+    else:
+        print(f"❌ No previous posttest model, but RMSE >= 1.0 — not promoting.")
 
+# -------------------------------
+# 🧹 Remove 'pretest' alias if model is promoted to posttest
+# -------------------------------
+if promoted:
     try:
-        alias_info = client.get_model_version_by_alias(MODEL_NAME, NEW_ALIAS)
-        version = alias_info.version
-        client.set_registered_model_alias(MODEL_NAME, PREVIOUS_ALIAS, version=version)
+        client.delete_registered_model_alias(MODEL_NAME, alias=ALIAS_CHALLENGER)
+        print(f"🧹 Removed alias '{ALIAS_CHALLENGER}' after promotion to posttest.")
+    except MlflowException:
+        print(f"⚠️ Could not remove alias '{ALIAS_CHALLENGER}' — may not exist.")
 
-        with open(CHALLENGER_METRICS_PATH, "w") as f:
-            json.dump(new_metrics, f, indent=4)
+# -------------------------------
+# 💾 Save challenger metrics
+# -------------------------------
+with open(CHALLENGER_METRICS_PATH, "w") as f:
+    json.dump(new_metrics, f, indent=4)
 
-        print(f"🏆 Version {version} is now the new post-challenger.")
-        sys.exit(0)
-
-    except MlflowException as e:
-        print(f"❌ Failed to promote model: {e}")
-        sys.exit(1)
-
-else:
-    print("❌ New model did not outperform the post-challenger.")
-    sys.exit(1)
+print("✅ Compare process complete.")
