@@ -11,7 +11,7 @@ import joblib
 import os
 
 # MLflow setup
-mlflow.set_tracking_uri("http://172.174.154.85:8000")
+mlflow.set_tracking_uri("http://localhost:8000")
 mlflow.set_experiment("Dev Model Training")
 
 # === Load Data ===
