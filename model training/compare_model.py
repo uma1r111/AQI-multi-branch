@@ -10,7 +10,7 @@ from mlflow.exceptions import MlflowException
 # -------------------------------
 MLFLOW_TRACKING_URI = "http://172.174.154.85:8000"
 EXPERIMENT_NAME = "Pre-Prod Model Training"
-METRICS_PATH = r"C:\Users\shaikh.mumar\AQI-multi-branch\metrics.json"
+METRICS_PATH = "metrics.json"
 CHALLENGER_METRICS_PATH = "challenger-posttest_metrics.json"
 MODEL_NAME = "aqi-model"
 ALIAS_CHALLENGER = "challenger-pretest"
