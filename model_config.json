@@ -1,4 +1,4 @@
 {
-  "run_sarimax": true,
-  "run_xgboost": false
+  "run_sarimax": false,
+  "run_xgboost": true
 }
