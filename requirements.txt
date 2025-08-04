@@ -1,1 +1,8 @@
+scikit-learn
+pandas
+numpy
+requests
+statsmodels
+mlflow
+xgboost
 boto3
