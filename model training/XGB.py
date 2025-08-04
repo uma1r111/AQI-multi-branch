@@ -13,7 +13,7 @@ mlflow.set_tracking_uri("http://localhost:8000")
 mlflow.set_experiment("Dev Model Training")
 
 # === Load Data ===
-df = pd.read_csv("C:/Users/shaikh.mumar/AQI-multi-branch/data/feature_selection.csv")
+df = pd.read_csv("data/feature_selection.csv")
 df["datetime"] = pd.to_datetime(df["datetime"])
 df = df.sort_values("datetime")
 
