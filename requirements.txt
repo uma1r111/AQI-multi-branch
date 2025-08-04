@@ -4,5 +4,4 @@ numpy
 requests
 statsmodels
 mlflow
-xgboost
 boto3
