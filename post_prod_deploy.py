@@ -73,7 +73,7 @@ except RestException:
 # 📝 Log Promotion in Post-Prod Experiment
 # -------------------------------
 if promoted:
-    with mlflow.start_run(run_name="Champion Promotion"):
+    with mlflow.start_run(run_name="Sarimax-champion"):
         mlflow.set_tag("model_name", MODEL_NAME)
         mlflow.set_tag("promoted_from", ALIAS_SRC)
         mlflow.set_tag("promoted_to", ALIAS_DEST)
