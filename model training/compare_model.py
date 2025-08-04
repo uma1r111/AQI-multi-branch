@@ -8,7 +8,7 @@ from mlflow.exceptions import MlflowException
 # -------------------------------
 # 🟠 Constants
 # -------------------------------
-MLFLOW_TRACKING_URI = "http://172.174.154.85:8000"
+MLFLOW_TRACKING_URI = "http://localhost:8000"
 EXPERIMENT_NAME = "Pre-Prod Model Training"
 METRICS_PATH = "metrics.json"
 CHALLENGER_METRICS_PATH = "challenger-posttest_metrics.json"
