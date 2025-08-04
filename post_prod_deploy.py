@@ -4,7 +4,7 @@ from mlflow.tracking import MlflowClient
 # -------------------------------
 # 🔧 Constants & Configuration
 # -------------------------------
-MLFLOW_TRACKING_URI = "http://172.174.154.85:8000"
+MLFLOW_TRACKING_URI = "http://localhost:8000"
 EXPERIMENT_NAME = "Pre-Prod Model Training"
 MODEL_NAME = "aqi-model"
 
