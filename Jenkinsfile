@@ -78,7 +78,7 @@ pipeline {
                             . .venv/bin/activate
                             python "model training/sarimax.py"
                         '''
-                    } else if (config.run_XGB == true) {
+                    } else if (config.run_xgboost == true) {
                         echo "Running XGBoost model..."
                         sh '''
                             . .venv/bin/activate
